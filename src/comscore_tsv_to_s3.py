@@ -5,8 +5,8 @@ import sys
 
 fn=sys.argv[3]
 
-conn=S3Connection(sys.argv[1],sys.argv[2])
-bucket=conn.get_bucket('s3-acpcontent')
+#conn=S3Connection(sys.argv[1],sys.argv[2])
+#bucket=conn.get_bucket('s3-acpcontent')
 
 with open(fn) as ff:
     dumpdata=[]
