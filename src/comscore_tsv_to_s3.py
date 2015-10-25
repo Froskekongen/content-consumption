@@ -10,7 +10,7 @@ bucket=conn.get_bucket('s3-comscore-consumption-daily')
 
 with open(fn) as ff:
     key_in_bucket=fn.split('/')[-1]
-    dumpdata=''
+    dumpdata=[]
     n_lines=0
     lines_per_file=5000000
     for iii,line in enumerate(ff):
