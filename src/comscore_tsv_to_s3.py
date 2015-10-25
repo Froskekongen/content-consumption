@@ -12,7 +12,7 @@ with open(fn) as ff:
     dumpdata=[]
     n_lines=0
     lines_per_file=5000000
-    for iii,line in ff:
+    for iii,line in enumerate(ff):
         n_lines+=1
         dumpdata.append(line)
         if (n_lines%lines_per_file)==0:
