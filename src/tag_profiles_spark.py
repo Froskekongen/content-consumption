@@ -5,6 +5,9 @@ from pyspark import SparkContext,SparkConf
 from pyspark.sql import SQLContext,Row
 from collections import Counter
 import numpy as np
+from pprint import pprint
+
+import pickle as pkl
 
 from pyspark.ml.feature import OneHotEncoder,StringIndexer,\
     VectorAssembler,CountVectorizer,Normalizer
@@ -34,11 +37,14 @@ def parseTags(xx):
     hour=int(xx[4])
     weekday=date.weekday()
     tags=xx[5].lower().split('|')
+    n_tags=len(tags)
+    posts_with_tags=1.
 
     tags=[tag for tag in tags if tag not in filterSet]
     timegroup=str( (weekday,splDict[hour]) )
-    return Row(a_user_key=a_user_key,browser=browser,\
-        date=date,weekday=weekday,timegroup=timegroup,tags=tags)
+    return Row(a_user_key=a_user_key,browser=browser,a_virtual=a_virtual,\
+        date=date,weekday=weekday,timegroup=timegroup,tags=tags,n_tags=n_tags,\
+        posts_with_tags=posts_with_tags)
 
 
 
@@ -84,8 +90,9 @@ if __name__ == "__main__":
 
 
 
-    tags_users=a_user_tag_konsum.map(lambda x:(x.a_user_key,x.tags)).reduceByKey(lambda a,b:a+b)\
-        .map(lambda x:Row(a_user_key=x[0],tags=x[1]))#\
+    tags_users=a_user_tag_konsum.map(lambda x:((x.a_user_key,x.a_virtual),(x.tags,x.n_tags,x.posts_with_tags)))\
+        .reduceByKey(lambda a,b:(a[0]+b[0],a[1]+b[1],a[2]+b[2]))\
+        .map(lambda x:Row(a_user_key=x[0][0],a_virtual=x[0][1],tags=x[1][0],n_tags=x[1][1],posts_with_tags=x[1][2]))#\
 
     #print(tags_users.take(10))
 
@@ -107,15 +114,21 @@ if __name__ == "__main__":
     model=cVec.fit(tags_users_df)
     td=model.transform(tags_users_df)
 
-    # pMap=model.vocabulary
-    # print(pMap)
+    with open('/home/erlenda/data/konsum/countvec_vocabulary.pkl',mode='wb') as ff:
+        pkl.dump(model.vocabulary,ff)
+
+
 
     normalizer=Normalizer(p=1.,inputCol='tag_features',outputCol='tags_normalized')
     tdNorm=normalizer.transform(td)
+    print(tdNorm.take(5))
 
     tdNorm.write.save('/home/erlenda/data/konsum/tag_profiler_parquet')
 
-    print(tdNorm.take(5))
+    samples=tdNorm.filter(tdNorm.posts_with_tags>10).take(10)
+    #pprint(samples)
+
+
 
 
     # stringIndexer = StringIndexer(inputCol="tags", outputCol="indexed_tags")
